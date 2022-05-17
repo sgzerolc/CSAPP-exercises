@@ -6,6 +6,11 @@
 #include <cinttypes>
 #include <cassert>
 
+// global variables: track malloc stats
+// static unsigned long long ntotal = 0;
+static m61_statistics gstats = {0, 0, 0, 0,
+                                0, 0, 0, 0};
+
 /// m61_malloc(sz, file, line)
 ///    Return a pointer to `sz` bytes of newly-allocated dynamic memory.
 ///    The memory is not initialized. If `sz == 0`, then m61_malloc must
@@ -15,6 +20,25 @@
 void* m61_malloc(size_t sz, const char* file, long line) {
     (void) file, (void) line;   // avoid uninitialized variable warnings
     // Your code here.
+    // check size overflow
+    if (sz > gstats.heap_max){
+        ++gstats.nfail;
+        gstats.fail_size += sz;
+        return nullptr;
+    }
+
+    // check if null
+    if (sz == 0){
+        return nullptr;
+    }
+
+
+    ++gstats.ntotal;
+    ++gstats.nactive;
+    gstats.active_size += sz;
+    gstats.total_size += sz;
+
+
     return base_malloc(sz);
 }
 
@@ -27,6 +51,11 @@ void* m61_malloc(size_t sz, const char* file, long line) {
 void m61_free(void* ptr, const char* file, long line) {
     (void) file, (void) line;   // avoid uninitialized variable warnings
     // Your code here.
+    // check if nullptr
+    if (!ptr){
+        return;
+    }
+    --gstats.nactive;
     base_free(ptr);
 }
 
@@ -55,6 +84,9 @@ void m61_get_statistics(m61_statistics* stats) {
     // Stub: set all statistics to enormous numbers
     memset(stats, 255, sizeof(m61_statistics));
     // Your code here.
+    // naive way: initialize to zero
+    *stats = gstats;
+
 }
 
 

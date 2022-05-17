@@ -1,17 +1,11 @@
-Author and collaborators
+Author
 ========================
 
 Student
 -------
-(Your name.)
-
-
-Collaborators
--------------
-(List any other collaborators and describe help you got from other students
-in the class.)
-
+Sam Li
 
 Citations
 ---------
 (List any other sources consulted.)
+1. 

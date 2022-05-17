@@ -7,11 +7,11 @@ int main() {
     for (int i = 0; i != 10; ++i) {
         ptrs[i] = malloc(i + 1);
     }
-    for (int i = 0; i != 5; ++i) {
+    for (int i = 0; i != 4; ++i) {
         free(ptrs[i]);
     }
     m61_print_statistics();
 }
 
-//! alloc count: active          5   total         10   fail        ???
+//! alloc count: active          6   total         10   fail        ???
 //! alloc size:  active        ???   total        ???   fail        ???
