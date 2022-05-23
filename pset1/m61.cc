@@ -5,11 +5,40 @@
 #include <cstdio>
 #include <cinttypes>
 #include <cassert>
+#include <unordered_map>
 
 // global variables: track malloc stats
 // static unsigned long long ntotal = 0;
 static m61_statistics gstats = {0, 0, 0, 0,
                                 0, 0, 0, 0};
+
+// internal metadata
+struct dict {
+    std::unordered_map<uintptr_t, size_t> payload;
+    int nactive = 0;
+    unsigned long long active_size = 0;
+};
+
+struct dict meta;
+
+// magic bound N
+static int bound = 100;
+
+// Make metadata bounded by checking current payload.
+// Set the bound N. If current active element size + 1 <= N, return true.
+// Otherwise, return false.
+bool update(){
+    if (meta.nactive + 1 <= bound){
+        return true;
+    }
+
+    return false;
+}
+
+void link(){
+    gstats.nactive = meta.nactive;
+    gstats.active_size = meta.active_size;
+}
 
 /// m61_malloc(sz, file, line)
 ///    Return a pointer to `sz` bytes of newly-allocated dynamic memory.
@@ -20,26 +49,36 @@ static m61_statistics gstats = {0, 0, 0, 0,
 void* m61_malloc(size_t sz, const char* file, long line) {
     (void) file, (void) line;   // avoid uninitialized variable warnings
     // Your code here.
-    // check size overflow
-    if (sz > gstats.heap_max){
-        ++gstats.nfail;
+
+
+    void* ptr =  base_malloc(sz);
+    if (!ptr){
         gstats.fail_size += sz;
-        return nullptr;
+        ++gstats.nfail;
+    } else {
+        ++gstats.ntotal;
+
+        gstats.total_size += sz;
+
+        if (!gstats.heap_min || gstats.heap_min > (uintptr_t) ptr) {
+            gstats.heap_min = (uintptr_t) ptr;
+        }
+
+        if (!gstats.heap_max || gstats.heap_max < (uintptr_t) ptr + sz) {
+            gstats.heap_max = (uintptr_t) ptr + sz;
+        }
+
+        if (update()){
+            meta.payload.insert({(uintptr_t)ptr, sz});
+            ++meta.nactive;
+            meta.active_size += sz;
+        }
+
+        link();
     }
 
-    // check if null
-    if (sz == 0){
-        return nullptr;
-    }
 
-
-    ++gstats.ntotal;
-    ++gstats.nactive;
-    gstats.active_size += sz;
-    gstats.total_size += sz;
-
-
-    return base_malloc(sz);
+    return ptr;
 }
 
 
@@ -51,11 +90,15 @@ void* m61_malloc(size_t sz, const char* file, long line) {
 void m61_free(void* ptr, const char* file, long line) {
     (void) file, (void) line;   // avoid uninitialized variable warnings
     // Your code here.
-    // check if nullptr
     if (!ptr){
         return;
     }
-    --gstats.nactive;
+
+    --meta.nactive;
+    meta.active_size -= meta.payload[(uintptr_t) ptr];
+    meta.payload.erase((uintptr_t)ptr);
+    link();
+
     base_free(ptr);
 }
 

@@ -13,7 +13,7 @@ int main() {
         free(ptrs[i]);
     }
     size_t very_large_size = (size_t) -1 - 150;
-    void* garbage = malloc(very_large_size);
+    void* garbage = malloc(very_large_size);  // when to fail the allocation
     assert(!garbage);
     m61_print_statistics();
 }
